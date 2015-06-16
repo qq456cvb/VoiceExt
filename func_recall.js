@@ -62,7 +62,6 @@ function post(index, time, word, sys_time) {
 
 function DmList () {
   this.total_index = 0;
-  this.curr_index = 0;
   this.selected_index = 0;
   this.total_offset = 34;
   this.offset_array = new Array();
@@ -72,10 +71,12 @@ function DmList () {
   this.init = function () {
     this.edit_text.html("hahahahhaha");
     this.edit_text.attr('id', 'edit_text');
+    this.edit_text.css('height', '40px');
+    this.edit_text.css('width', '140px');
     this.edit_text.css("z-index", 20);
     this.edit_text.css("position", "absolute");
-    this.edit_text.css("right", "20px");
-    this.edit_text.css("top", "100px");
+    this.edit_text.css("right", "80px");
+    // this.edit_text.css("top", "120px");
     var table = document.createElement("table");
     table.innerHTML = "<thead><tr><th data-field='time' data-width='70px' data-align='left'>时间</th><th data-field='comment' data-width='140px'>评论</th><th data-field='sendtime' data-width='80px'>发送时间</th></tr></thead>";
     table.setAttribute("id", "mytable");
@@ -308,6 +309,7 @@ function keyDown(e) {
       if (dmlist.selected_index != 0 && !dmlist.attrib_array[dmlist.total_index-dmlist.selected_index+1].expired) {
         controller.input_mode = !controller.input_mode;
         if (controller.input_mode) {
+          dmlist.edit_text.css('top', (120 + dmlist.offset_array[dmlist.selected_index]) + "px");
           dmlist.edit_text.appendTo($("body"));
           dmlist.edit_text.focus();
           clearTimeout(dmlist.attrib_array[dmlist.total_index-dmlist.selected_index+1].timer);
