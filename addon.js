@@ -12,21 +12,22 @@ function FlyDanmu(msg, right, left, duration){
 }
 
 
-var emoji_set = [
-{keyword:["开心"],emoji:"ヾ(o◕∀◕)ﾉ "},
-{keyword:["大笑","狂笑"],emoji:"o(*≧▽≦)ツ"},
-{keyword:["卖萌"],emoji:" (=￣ω￣=)"},
-{keyword:["大哭"],emoji:"〒▽〒"},
-{keyword:["无奈"],emoji:"╮（￣﹏￣）╭"}
-];
-function Word2Emoji(str){
+// var emoji_set = [
+// {keyword:["开心"],emoji:"ヾ(o◕∀◕)ﾉ "},
+// {keyword:["大笑","狂笑"],emoji:"o(*≧▽≦)ツ"},
+// {keyword:["卖萌"],emoji:" (=￣ω￣=)"},
+// {keyword:["大哭"],emoji:"〒▽〒"},
+// {keyword:["无奈"],emoji:"╮（￣﹏￣）╭"}
+// ];
+function Word2Emoji(str, emoji_set){
+	// console.log(emoji_set);
 	var length = emoji_set.length;
 	 for(var i=0;i<length;i++){
 		 var item = emoji_set[i];
 		 for(var j=0;j<item.keyword.length;j++){
 			 var index = str.indexOf(item.keyword[j]);
 			 if(index>=0){//found,replace it with corresponding emoji
-				 var result = Word2Emoji(str.slice(0,index))+item.emoji+Word2Emoji(str.slice(index+item.keyword[j].length));
+				 var result = Word2Emoji(str.slice(0,index),emoji_set)+item.emoji+Word2Emoji(str.slice(index+item.keyword[j].length), emoji_set);
 				 return result;
 			 }
 		 }

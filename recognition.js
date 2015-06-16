@@ -26,16 +26,23 @@ recognition.onresult = function(event){
   if(event.results[resultsLength].isFinal)
   {
 
-    
-  	saidWord = Word2Emoji(saidWord);
-    if (dmlist.selected_index != 0) {
-      // console.log(dmlist.selected_index);
-      dmlist.update(dmlist.selected_index, controller.send_time, saidWord, controller.curr_time);
-    } else {
-      // console.log(dmlist.selected_index);
-      dmlist.add(controller.send_time, saidWord, controller.curr_time);
-    }
-    FlyDanmu(saidWord, 1300, 0, 10);
+    chrome.runtime.sendMessage({page: "recognition.js"}, function(response) {  
+      // console.log(response.emoji_set);
+      // console.log(response.emoji_set.length);
+      saidWord = Word2Emoji(saidWord, response.emoji_set);
+      if (dmlist.selected_index != 0) {
+        // console.log(dmlist.selected_index);
+        if (dmlist.update(dmlist.selected_index, controller.send_time, saidWord, controller.curr_time)) {
+          FlyDanmu(saidWord, 1300, 0, 10);
+        }
+      } else {
+        // console.log(dmlist.selected_index);
+        dmlist.add(controller.send_time, saidWord, controller.curr_time);
+        FlyDanmu(saidWord, 1300, 0, 10);
+      }
+      
+    });
+  	
   };
 }
 

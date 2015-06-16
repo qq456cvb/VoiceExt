@@ -55,7 +55,8 @@ function post(index, time, word, sys_time) {
   var temp = $('#mytable').bootstrapTable('getData', false);
   $('#mytable').bootstrapTable('load', temp);
   // postComment.onPost(time, sys_time, word);
-  chrome.runtime.sendMessage({playtime: time, timenow: sys_time, message: word}, function(response) {  
+  chrome.runtime.sendMessage({playtime: time, timenow: sys_time, 
+    message: word, page: "func_recall.js"}, function(response) {  
     console.log(response.message);
   });
 }
@@ -63,7 +64,7 @@ function post(index, time, word, sys_time) {
 function DmList () {
   this.total_index = 0;
   this.selected_index = 0;
-  this.total_offset = 34;
+  this.total_offset = 0;
   this.offset_array = new Array();
   this.attrib_array = new Array();
   this.offset_array[0] = 0;
@@ -102,12 +103,19 @@ function DmList () {
   this.calc_offset = function(saidWord){
     var str = saidWord.replace(/[^\x00-\xff]/g, 'xx');
     
-    if (this.total_index%10 == 0) {
-      this.total_offset = 0;
-    };
+    // if (this.total_index%10 == 0) {
+    //   this.total_offset = 0;
+    // };
     // console.dir(this);
-    this.offset_array[this.total_index] = this.total_offset;
-    this.total_offset += Math.ceil(str.length/26)*17+17;
+    this.offset_array[this.total_index] = 0;
+    // console.log(this.total_index / 10 * 10 + 1);
+    for (var i = Math.floor(this.total_index / 10) * 10 + 1; i < this.total_index; i++) {
+      // console.log(i);
+      console.log(Math.ceil(str.length/26));
+      this.offset_array[i] += (str.length == 0 ? 1 : Math.ceil(str.length/16))*21+20;
+    };
+    // this.offset_array[this.total_index] = this.total_offset;
+    // this.total_offset += Math.ceil(str.length/26)*17+22;
     return saidWord;
   }
 
@@ -120,7 +128,7 @@ function DmList () {
 
   function Data (time, word, sys_time) {
     this.time = trim_time(time);
-    this.comment = dmlist.calc_offset(word);
+    this.comment = word;
     this.sendtime = controller.curr_time();
   }
 
@@ -129,10 +137,11 @@ function DmList () {
     var attrib = new Attrib(false, new Date());
     var timenow = CurrentTime();      
     this.total_index++;
-    // alert(word);
+    this.calc_offset(word);
     attrib.timer = setTimeout("post('"+this.total_index+"','"+time+"','"+word+"','"+timenow+"')", 5000);  
     this.attrib_array[this.total_index] = attrib;   
     $('#mytable').bootstrapTable('insertRow', {index: 1, row: data});
+    return true;
   }
 
   this.update = function (index, time, word, sys_time) {
@@ -140,17 +149,26 @@ function DmList () {
       
       var timenow = CurrentTime();  
       var trim_index = this.total_index-index+1;
-      this.attrib_array[this.total_index-index+1].timer = setTimeout("post('"+trim_index+"','"+time+"','"+word+"','"+timenow+"')", 5000);  
+      this.attrib_array[trim_index].timer = setTimeout("post('"+trim_index+"','"+time+"','"+word+"','"+timenow+"')", 5000);  
       var data = new Data(time, word, sys_time);
       $('#mytable').bootstrapTable('updateRow', {index: index, row: data});
+      return true;
     };
-    
+    return false;
   }
 
   this.update = function (index, word) {
     if (!this.attrib_array[this.total_index-index+1].expired) {
+      var timenow = CurrentTime();  
+      var trim_index = this.total_index-index+1;
+      var curr_page = $('#mytable').bootstrapTable('getData', true);
+      console.log(curr_page);
+      var time = curr_page[index % 10][time];
+      this.attrib_array[trim_index].timer = setTimeout("post('"+trim_index+"','"+time+"','"+word+"','"+timenow+"')", 5000);  
       $('#mytable').bootstrapTable('updateCell', {rowIndex: index, fieldName: 'comment', fieldValue: word});
+      return true;
     }
+    return false;
   }
 }
 
@@ -161,6 +179,7 @@ var z = document.getElementsByClassName("z")[0];
 var player = document.getElementsByClassName("player-wrapper")[0];
 
 var controller = {
+  bind_key : 83,
   input_mode : false,
   started : false,
   paused : true,
@@ -242,105 +261,101 @@ function keyDown(e) {
     var temp = $('#mytable').bootstrapTable('getData', false);
 
     // alert("按键码:"  + keycode + "字符:" + realkey); 
-
-    if (keycode == 37) { //<-
+    chrome.runtime.sendMessage({intent: "read_binding_key", page: "func_recall.js"}, function(response) {  
+      controller.bind_key = response.bind_key;
+      if (keycode == 37) { //<-
         e.preventDefault();
         dmlist.selected_index-=10;
         if (dmlist.selected_index<0) {
             dmlist.selected_index = 0;
         };
         $('#mytable').bootstrapTable('prevPage');      
-    };
-    if (keycode == 38) { //^
-        e.preventDefault();
-        dmlist.selected_index--;
-        if (dmlist.selected_index < 0) {
-            dmlist.selected_index = 0;
-        };
-        if (dmlist.selected_index % 10 == 9) {
-            $('#mytable').bootstrapTable('prevPage');
-        };
-    };
-    if (keycode == 39) { //->
-        e.preventDefault();
-        dmlist.selected_index+=10;
-        if (dmlist.selected_index > dmlist.total_index) {
-            dmlist.selected_index = dmlist.total_index;
-        };
-        $('#mytable').bootstrapTable('nextPage');    
-    };
-    if (keycode == 40) { //v
-        e.preventDefault();
-        dmlist.selected_index++;
-        if (dmlist.selected_index > dmlist.total_index) {
-            dmlist.selected_index = dmlist.total_index;
-        };
+      };
+      if (keycode == 38) { //^
+          e.preventDefault();
+          dmlist.selected_index--;
+          if (dmlist.selected_index < 0) {
+              dmlist.selected_index = 0;
+          };
+          if (dmlist.selected_index % 10 == 9) {
+              $('#mytable').bootstrapTable('prevPage');
+          };
+      };
+      if (keycode == 39) { //->
+          e.preventDefault();
+          dmlist.selected_index+=10;
+          if (dmlist.selected_index > dmlist.total_index) {
+              dmlist.selected_index = dmlist.total_index;
+          };
+          $('#mytable').bootstrapTable('nextPage');    
+      };
+      if (keycode == 40) { //v
+          e.preventDefault();
+          dmlist.selected_index++;
+          if (dmlist.selected_index > dmlist.total_index) {
+              dmlist.selected_index = dmlist.total_index;
+          };
 
-        if (dmlist.selected_index % 10 == 0) {
-            $('#mytable').bootstrapTable('nextPage');
-        };
-        // $('#mytable').bootstrapTable('hideRow', {index: selected_index, isIdField: false});  
-    };
-    if (keycode == 32) {
-      if (controller.paused == true) {
-            setTimeout(calTime, 100);
-            //alert("start");
-        };
-        if (controller.paused == false) {
-            //alert("stop");
-            //alert(total_time);
-        };
-        controller.paused = !controller.paused;
-    };
-    if (realkey == 'S' && !controller.started && !controller.input_mode) {
-        e.preventDefault();
+          if (dmlist.selected_index % 10 == 0) {
+              $('#mytable').bootstrapTable('nextPage');
+          };
+          // $('#mytable').bootstrapTable('hideRow', {index: selected_index, isIdField: false});  
+      };
+      if (keycode == 32) {
+        if (controller.paused == true) {
+              setTimeout(calTime, 100);
+              //alert("start");
+          };
+          if (controller.paused == false) {
+              //alert("stop");
+              //alert(total_time);
+          };
+          controller.paused = !controller.paused;
+      };
+      if (keycode == controller.bind_key && !controller.started && !controller.input_mode) {
+          e.preventDefault();
+          if (dmlist.selected_index != 0 && !dmlist.attrib_array[dmlist.total_index-dmlist.selected_index+1].expired) {
+            clearTimeout(dmlist.attrib_array[dmlist.total_index-dmlist.selected_index+1].timer);
+          };
+          controller.send_time = controller.total_time;
+          controller.started = true;
+          recognition.start();
+          console.log("S key is down");
+          document.getElementById("microphone").style.display = "block";
+
+      };
+
+      if (keycode == 13) { //回车
         if (dmlist.selected_index != 0 && !dmlist.attrib_array[dmlist.total_index-dmlist.selected_index+1].expired) {
-          clearTimeout(dmlist.attrib_array[dmlist.total_index-dmlist.selected_index+1].timer);
-        };
-        controller.send_time = controller.total_time;
-        controller.started = true;
-        recognition.start();
-        console.log("S key is down");
-        document.getElementById("microphone").style.display = "block";
-
-    };
-
-    if (keycode == 13) { //回车
-      if (dmlist.selected_index != 0 && !dmlist.attrib_array[dmlist.total_index-dmlist.selected_index+1].expired) {
-        controller.input_mode = !controller.input_mode;
-        if (controller.input_mode) {
-          dmlist.edit_text.css('top', (120 + dmlist.offset_array[dmlist.selected_index]) + "px");
-          dmlist.edit_text.appendTo($("body"));
-          dmlist.edit_text.focus();
-          clearTimeout(dmlist.attrib_array[dmlist.total_index-dmlist.selected_index+1].timer);
-        } else {
-          // alert($('#edit_text').val());
-          dmlist.update(dmlist.selected_index, $('#edit_text').val());
-          dmlist.edit_text.remove();
-        };
-      }
-      // dmlist.edit_text.appendTo($("body"));
-      
-    };
-
-    $('#mytable').bootstrapTable('load', temp);
-    // alert(selected_index);
-    // alert(offset_array[selected_index]);
-    $('#mytable').bootstrapTable('scrollTo', dmlist.offset_array[dmlist.selected_index]); // 4:85, 3:68
-    //alert(selected_index);
-    // alert(temp);
-    // for (var i = 0; i < 30; i++) {
-    //     $('#mytable').bootstrapTable('append', data);
-    // };
+          controller.input_mode = !controller.input_mode;
+          if (controller.input_mode) {
+            // console.log(dmlist.selected_index);
+            console.log(dmlist.offset_array);
+            dmlist.edit_text.css('top', (159 + dmlist.offset_array[dmlist.total_index-dmlist.selected_index+1]) + "px");
+            dmlist.edit_text.appendTo($("body"));
+            dmlist.edit_text.focus();
+            clearTimeout(dmlist.attrib_array[dmlist.total_index-dmlist.selected_index+1].timer);
+          } else {
+            // alert($('#edit_text').val());
+            dmlist.update(dmlist.selected_index, $('#edit_text').val());
+            dmlist.edit_text.remove();
+          };
+        }
+        // dmlist.edit_text.appendTo($("body"));
+        
+      };
+      $('#mytable').bootstrapTable('load', temp);
+      $('#mytable').bootstrapTable('scrollTo', dmlist.offset_array[dmlist.selected_index]); // 4:85, 3:68
+    });
     
-      
-      //setTimeout(hello, 3000);
   }  
+
 function keyUp(e) {
     
     var keycode = e.which;  
     var realkey = String.fromCharCode(e.which); 
-    if (realkey == 'S' && controller.started) {   
+    // alert(controller.bind_key);
+    if (keycode == controller.bind_key && controller.started) {   
         e.preventDefault();     
         recognition.stop();
         // console.log("Final:" + saidWord + " S key is up!\n");
@@ -379,9 +394,14 @@ document.onmousedown = function(event) {
     };
 };
 
-var icon = document.createElement("img");
-
-icon.setAttribute("id","microphone");
-icon.setAttribute("style","position:absolute;width:240px;height:240px;z-index:20;top:350px;right:25px;opacity:0.2;display:none");
-icon.setAttribute("src","https://ss1.bdstatic.com/5eN1bjq8AAUYm2zgoY3K/r/www/cache/static/protocol/https/voice/imgs/start_btn_6d57b7ec.png");
-document.body.appendChild(icon);
+var microphone_str = '<div id="microphone"><img src="https://ss1.bdstatic.com/5eN1bjq8AAUYm2zgoY3K/r/www/cache/static/protocol/https/voice/imgs/start_btn_6d57b7ec.png"/><div class="round"></div><div id="round" class="round"></div><div id="round2" class="round"></div></div>';
+$(microphone_str).appendTo($("body"));
+setInterval(function(){
+    $("#round").animate({width:150,height:150,top:-35,left:-35,opacity:0.2},2000,function(){
+      $("#round").css("width","84px").css("height","84px").css("top","-2px").css("left","-2px").css("opacity","1");
+    });
+    setTimeout(function(){
+      $("#round2").animate({width:150,height:150,top:-35,left:-35,opacity:0.2},2000,function(){
+        $("#round2").css("width","84px").css("height","84px").css("top","-2px").css("left","-2px").css("opacity","1");
+      });},1000);
+  },100);
