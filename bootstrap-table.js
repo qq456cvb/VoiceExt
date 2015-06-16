@@ -1916,6 +1916,14 @@
         this.initBody(true);
     };
 
+    BootstrapTable.prototype.updateCell = function (params) {
+        if (!params.hasOwnProperty('rowIndex') || !params.hasOwnProperty('fieldName') || !params.hasOwnProperty('fieldValue')) {
+            return;
+        }
+        this.data[params.rowIndex][params.fieldName] = params.fieldValue;
+        this.initBody(true);
+    };
+
     BootstrapTable.prototype.showRow = function (params) {
         if (!params.hasOwnProperty('index')) {
             return;
@@ -2141,7 +2149,7 @@
         'load', 'append', 'prepend', 'remove',
         'insertRow', 'updateRow',
         'showRow', 'hideRow', 'getRowsHidden',
-        'mergeCells',
+        'mergeCells', 'updateCell',
         'checkAll', 'uncheckAll',
         'check', 'uncheck',
         'checkBy', 'uncheckBy',

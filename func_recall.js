@@ -68,8 +68,14 @@ function DmList () {
   this.offset_array = new Array();
   this.attrib_array = new Array();
   this.offset_array[0] = 0;
+  this.edit_text = $("<input></input>");
   this.init = function () {
-
+    this.edit_text.html("hahahahhaha");
+    this.edit_text.attr('id', 'edit_text');
+    this.edit_text.css("z-index", 20);
+    this.edit_text.css("position", "absolute");
+    this.edit_text.css("right", "20px");
+    this.edit_text.css("top", "100px");
     var table = document.createElement("table");
     table.innerHTML = "<thead><tr><th data-field='time' data-width='70px' data-align='left'>时间</th><th data-field='comment' data-width='140px'>评论</th><th data-field='sendtime' data-width='80px'>发送时间</th></tr></thead>";
     table.setAttribute("id", "mytable");
@@ -140,7 +146,11 @@ function DmList () {
     
   }
 
-
+  this.update = function (index, word) {
+    if (!this.attrib_array[this.total_index-index+1].expired) {
+      $('#mytable').bootstrapTable('updateCell', {rowIndex: index, fieldName: 'comment', fieldValue: word});
+    }
+  }
 }
 
 
@@ -150,6 +160,7 @@ var z = document.getElementsByClassName("z")[0];
 var player = document.getElementsByClassName("player-wrapper")[0];
 
 var controller = {
+  input_mode : false,
   started : false,
   paused : true,
   total_time : 0,
@@ -280,7 +291,7 @@ function keyDown(e) {
         };
         controller.paused = !controller.paused;
     };
-    if (realkey == 'S' && !controller.started) {
+    if (realkey == 'S' && !controller.started && !controller.input_mode) {
         e.preventDefault();
         if (dmlist.selected_index != 0 && !dmlist.attrib_array[dmlist.total_index-dmlist.selected_index+1].expired) {
           clearTimeout(dmlist.attrib_array[dmlist.total_index-dmlist.selected_index+1].timer);
@@ -292,11 +303,22 @@ function keyDown(e) {
         document.getElementById("microphone").style.display = "block";
 
     };
-    if (realkey == 'Q') {
-      e.preventDefault();
-      var flash = document.body.children[0];
-      var frames = flash.TotalFrames();
-      alert(frames);
+
+    if (keycode == 13) { //回车
+      if (dmlist.selected_index != 0 && !dmlist.attrib_array[dmlist.total_index-dmlist.selected_index+1].expired) {
+        controller.input_mode = !controller.input_mode;
+        if (controller.input_mode) {
+          dmlist.edit_text.appendTo($("body"));
+          dmlist.edit_text.focus();
+          clearTimeout(dmlist.attrib_array[dmlist.total_index-dmlist.selected_index+1].timer);
+        } else {
+          // alert($('#edit_text').val());
+          dmlist.update(dmlist.selected_index, $('#edit_text').val());
+          dmlist.edit_text.remove();
+        };
+      }
+      // dmlist.edit_text.appendTo($("body"));
+      
     };
 
     $('#mytable').bootstrapTable('load', temp);
